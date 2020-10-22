@@ -18,3 +18,15 @@ class RequestProcessor:
         Stop processing requests (called by thread scheduler)
         """
         pass
+
+    def handle(self, request):
+        """
+        Handle received request message (POST, GET, HEAD)
+        """
+        pass
+
+    def send(self, message):
+        """
+        Send response to client after handling
+        """
+        pass
