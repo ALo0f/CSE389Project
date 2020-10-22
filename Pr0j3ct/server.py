@@ -32,8 +32,9 @@ class Server:
         # create server socket
         try:
             serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            serversocket.bind((socket.gethostbyname(), self.port))
+            serversocket.bind(("", self.port))
             serversocket.listen(5)
+            serversocket.settimeout(1)
         except socket.error as e:
             self.logger.error("{}".format(e))
             return
@@ -41,12 +42,14 @@ class Server:
         # start listening
         try:
             while True:
-                clientsocket, clientaddress = serversocket.accept()
-                self.logger.info("Client connected: {}".format(clientaddress))
-                processor = RequestProcessor(self.rootDirectory, self.indexFile, clientsocket)
-                self.scheduler.add(processor)
+                try:
+                    clientsocket, clientaddress = serversocket.accept()
+                    self.logger.info("Client connected: {}".format(clientaddress))
+                    processor = RequestProcessor(self.rootDirectory, self.indexFile, clientsocket)
+                    self.scheduler.add(processor)
+                except socket.timeout: pass
         except KeyboardInterrupt:
+            # on keyboard interrupt, close server and all running sub-threads
             self.logger.info("Server stopped")
-        finally:
             self.scheduler.shutdown()
             serversocket.close()

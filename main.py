@@ -7,6 +7,6 @@ if __name__=="__main__":
         print("Please run: main.py <RootDirectory> <Port>")
         sys.exit(1)
     root = sys.argv[1]
-    port = sys.argv[2]
+    port = int(sys.argv[2])
     myServer = Server(root, port)
     myServer.start()
