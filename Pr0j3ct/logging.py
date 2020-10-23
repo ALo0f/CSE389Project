@@ -2,8 +2,8 @@
 # implements Server Logger class
 
 class Logger:
-    def __init__(self):
-        pass
+    def __init__(self, caller):
+        self.caller = caller
 
     def info(self, message):
         """

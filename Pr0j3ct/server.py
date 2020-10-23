@@ -23,7 +23,7 @@ class Server:
         self.indexFile = indexFile
         # initialize variables
         self.scheduler = Scheduler()
-        self.logger = Logger()
+        self.logger = Logger(self.__class__.__name__)
         # log information
         self.logger.info("Server port: {}".format(self.port))
         self.logger.info("Server document root: {}".format(self.rootDirectory))
@@ -45,7 +45,7 @@ class Server:
                 try:
                     clientsocket, clientaddress = serversocket.accept()
                     self.logger.info("Client connected: {}".format(clientaddress))
-                    processor = RequestProcessor(self.rootDirectory, self.indexFile, clientsocket)
+                    processor = RequestProcessor(self.rootDirectory, self.indexFile, clientsocket, clientaddress)
                     self.scheduler.add(processor)
                 except socket.timeout: pass
         except KeyboardInterrupt:
