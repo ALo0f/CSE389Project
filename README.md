@@ -16,9 +16,11 @@ HTTP:
 - [ ] POST  
 
 Logging:  
-- [ ] information
-- [ ] warning
-- [ ] Error
+- [X] information
+- [X] warning
+- [X] Error
+- [ ] cacheManagement
+- [ ] logFilesManagement
 
 multi-threading:
 - [x] task queue
