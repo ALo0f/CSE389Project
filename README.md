@@ -25,4 +25,9 @@ Logging:
 multi-threading:
 - [x] task queue
 - [x] thread status tracker
-- [x] limit max threads  
+- [x] limit max threads
+
+## Extra Feature:
+- [ ] authentication
+- [ ] SSL
+- [ ] cache requests 
