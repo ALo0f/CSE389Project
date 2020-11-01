@@ -30,7 +30,7 @@ multi-threading:
 
 ## Extra Feature:
 - [ ] authentication
-- [ ] SSL
+- [x] SSL
 - [ ] cache requests
 - [ ] Cookie Management
 - [X] support for all file types

@@ -8,5 +8,6 @@ if __name__=="__main__":
         sys.exit(1)
     root = sys.argv[1]
     port = int(sys.argv[2])
-    myServer = Server(root, port)
+    # try to enable SSL for https
+    myServer = Server(root, port, enableSSL=True)
     myServer.start()

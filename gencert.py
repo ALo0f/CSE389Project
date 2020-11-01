@@ -80,10 +80,10 @@ def install_certificate():
                 os.system("sudo cp {} {}".format(os.path.join(FILE_FOLDER, FILE_CRT), os.path.join(path2, "Pr0j3ct.crt")))
                 os.system("sudo update-ca-trust")
             else:
-                raise Exception("Platform not supported, action failed")
+                raise Exception("platform not supported, action failed")
         else:
-            raise Exception("Platform not supported, action failed")
-        print("Certificate installed successfully")
+            raise Exception("platform not supported, action failed")
+        print("certificate installed successfully")
     # otherwise, not supported
     else:
         raise Exception("{} platform is not supported".format(os.name))
@@ -115,10 +115,10 @@ def uninstall_certificate():
                 os.system("sudo rm -f {}".format(os.path.join(path2, "Pr0j3ct.crt")))
                 os.system("sudo update-ca-trust")
             else:
-                raise Exception("Platform not supported, action failed")
+                raise Exception("platform not supported, action failed")
         else:
-            raise Exception("Platform not supported, action failed")
-        print("Certificate unintalled successfully")
+            raise Exception("platform not supported, action failed")
+        print("certificate unintalled successfully")
     # otherwise, not supported
     else:
         raise Exception("{} platform is not supported".format(os.name))
@@ -131,4 +131,4 @@ if __name__=="__main__":
         elif sys.argv[1] == "-uninstall":
             uninstall_certificate()
         else:
-            print("Only support argument \"-install\" or \"-uninstall\"")
+            print("only support argument \"-install\" or \"-uninstall\"")

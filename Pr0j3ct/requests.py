@@ -36,8 +36,6 @@ class RequestProcessor(threading.Thread):
                 break
             # decode byte array to string (HTTP request)
             decodedMessage = received.decode("utf-8")
-            #debug by using logger function
-            # self.logger.info(decodedMessage)
             # handle request
             self._handle(decodedMessage)
 

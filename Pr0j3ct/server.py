@@ -10,7 +10,7 @@ import ssl
 import socket
 
 class Server:
-    def __init__(self, rootDirectory, port, indexFile="index.html"):
+    def __init__(self, rootDirectory, port, indexFile="index.html", enableSSL=False):
         # check arguments
         if not os.path.exists(rootDirectory):
             raise ValueError("rootDirectory: {} not found".format(rootDirectory))
@@ -28,9 +28,9 @@ class Server:
         self.logger.info("Server port: {}".format(self.port))
         self.logger.info("Server document root: {}".format(self.rootDirectory))
         # try to load SSL certificate
-        self.SSL_cert_file = os.path.join("certificates", "signed.cert")
+        self.SSL_cert_file = os.path.join("certificates", "signed.crt")
         self.SSL_key_file = os.path.join("certificates", "signed.private.key")
-        if os.path.isfile(self.SSL_cert_file) and os.path.isfile(self.SSL_key_file):
+        if os.path.isfile(self.SSL_cert_file) and os.path.isfile(self.SSL_key_file) and enableSSL:
             self.SSL_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
             self.SSL_context.load_cert_chain(self.SSL_cert_file, self.SSL_key_file)
             self.SSL_enabled = True
@@ -64,6 +64,9 @@ class Server:
                     processor = RequestProcessor(self.rootDirectory, self.indexFile, clientsocket, clientaddress)
                     self.scheduler.add(processor)
                 except socket.timeout: pass
+                except ssl.SSLError as e:
+                    # ignore HTTP request error in HTTPS mode
+                    self.logger.error(e)
         except KeyboardInterrupt:
             # on keyboard interrupt, close server and all running sub-threads
             self.logger.info("Server stopped")
