@@ -66,9 +66,12 @@ Can also manage installed certificate using `mmc`, in `certificates/Trusted Root
 #### Linux
 Install certificate on Linux
 ```bash
-sudo python gencert.py -install
+python gencert.py -install
 ```
 To uninstall it, run
 ```bash
-sudo python gencert.py -uninstall
+python gencert.py -uninstall
 ```
+For `Ubuntu/Debian`, the certificate is installed at `/usr/local/share/ca-certificates/Pr0j3ct.crt`  
+For `Red Hat/CentOS`, the certificate is installed at `/etc/pki/ca-trust/source/anchors/Pr0j3ct.crt`  
+For `Arch Linux`, the certificate is installed at `/etc/ca-certificates/trust-source/anchors/Pr0j3ct.crt`

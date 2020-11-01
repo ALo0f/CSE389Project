@@ -7,7 +7,7 @@ import socket
 from OpenSSL import crypto
 
 FILE_FOLDER = "certificates"
-FILE_CRT = "signed.cert"
+FILE_CRT = "signed.crt"
 FILE_KEY = "signed.private.key"
 
 def generate_certificate():
@@ -53,18 +53,73 @@ def generate_certificate():
         print("certificate file already exists")
 
 def install_certificate():
+    # if windows
     if os.name == "nt":
-        os.system("certutil -addstore root .\certificates\signed.cert")
+        os.system("certutil -addstore root {}".format(os.path.join(FILE_FOLDER, FILE_CRT)))
+    # if linux
     elif os.name == "posix":
-        os.system("")
+        from shutil import which
+        # check for update-ca-certificates
+        if which("update-ca-certificates") is not None:
+            # ubuntu / debian
+            path = os.path.join("/", "usr", "local", "share", "ca-certificates")
+            if not os.path.exists(path):
+                raise Exception("{} path not found, action failed".format(path))
+            os.system("sudo cp {} {}".format(os.path.join(FILE_FOLDER, FILE_CRT), os.path.join(path, "Pr0j3ct.crt")))
+            os.system("sudo update-ca-certificates")
+        elif which("update-ca-trust") is not None:
+            path1 = os.path.join("/", "etc", "pki", "ca-trust", "source", "anchors")
+            path2 = os.path.join("/", "etc", "ca-certificates", "trust-source", "anchors")
+            if os.path.exists(path1):
+                # red hat / centos
+                os.system("sudo update-ca-trust force-enable")
+                os.system("sudo cp {} {}".format(os.path.join(FILE_FOLDER, FILE_CRT), os.path.join(path1, "Pr0j3ct.crt")))
+                os.system("sudo update-ca-trust extract")
+            elif os.path.exists(path2):
+                # arch
+                os.system("sudo cp {} {}".format(os.path.join(FILE_FOLDER, FILE_CRT), os.path.join(path2, "Pr0j3ct.crt")))
+                os.system("sudo update-ca-trust")
+            else:
+                raise Exception("Platform not supported, action failed")
+        else:
+            raise Exception("Platform not supported, action failed")
+        print("Certificate installed successfully")
+    # otherwise, not supported
     else:
         raise Exception("{} platform is not supported".format(os.name))
 
 def uninstall_certificate():
+    # if windows
     if os.name == "nt":
         os.system("certutil -delstore root \"Pr0j3ct\"")
+    # if linux
     elif os.name == "posix":
-        os.system("")
+        from shutil import which
+        # check for update-ca-certificates
+        if which("update-ca-certificates") is not None:
+            # ubuntu / debian
+            path = os.path.join("/", "usr", "local", "share", "ca-certificates")
+            if not os.path.exists(path):
+                raise Exception("{} path not found, action failed".format(path))
+            os.system("sudo rm -f {}".format(os.path.join(path, "Pr0j3ct.crt")))
+            os.system("sudo update-ca-certificates --fresh")
+        elif which("update-ca-trust") is not None:
+            path1 = os.path.join("/", "etc", "pki", "ca-trust", "source", "anchors")
+            path2 = os.path.join("/", "etc", "ca-certificates", "trust-source", "anchors")
+            if os.path.exists(path1):
+                # red hat / centos
+                os.system("sudo rm -f {}".format(os.path.join(path1, "Pr0j3ct.crt")))
+                os.system("sudo update-ca-trust extract")
+            elif os.path.exists(path2):
+                # arch
+                os.system("sudo rm -f {}".format(os.path.join(path2, "Pr0j3ct.crt")))
+                os.system("sudo update-ca-trust")
+            else:
+                raise Exception("Platform not supported, action failed")
+        else:
+            raise Exception("Platform not supported, action failed")
+        print("Certificate unintalled successfully")
+    # otherwise, not supported
     else:
         raise Exception("{} platform is not supported".format(os.name))
 
