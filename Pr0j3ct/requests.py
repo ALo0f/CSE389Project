@@ -3,6 +3,7 @@
 
 from Pr0j3ct.logging import Logger
 
+import os
 import socket
 import threading
 from email.utils import formatdate
@@ -60,19 +61,22 @@ class RequestProcessor(threading.Thread):
         else:
             self._handleERROR(501, "Not Implemented")
 
-    def _send(self, message):
+    def _send(self, message, binary=False):
         """
         Send response to client after handling
         """
-        self.connSocket.send(message.encode("utf-8"))
+        if binary:
+            self.connSocket.send(message)
+        else:
+            self.connSocket.send(message.encode("utf-8"))
 
-    def _sendHEADER(self, responseMessage, contentType, length):
+    def _sendHEADER(self, responseCode, responseMessage, contentType, length):
         """
         send http response header
         """
         #create each line of the header
         header = [
-            "{}\r\n".format(responseMessage),
+            "HTTP/1.1 {} {}\r\n".format(responseCode, responseMessage),
             "Date: {}\r\n".format(formatdate(timeval=None, localtime=False, usegmt=True)),
             "Server: Pr0j3ct\r\n",
             "Content-Length: {}\r\n".format(length),
@@ -88,7 +92,34 @@ class RequestProcessor(threading.Thread):
         """
         handle GET http request
         """
-        pass
+        received = message.split("\n")[0]
+        targetInfo = received.split()[1]
+        #if requested root send back index file
+        if targetInfo == "/" :
+            with open(os.path.join(self.rootDirectory, self.indexFile), "r") as inputFile:
+                data = inputFile.read()
+            self._sendHEADER(200, "OK", "text/html; charset=utf-8", len(data))
+            self._send(data)
+        #else try to recognize target file
+        else:
+            #get abosolute filepath
+            filePath = os.path.join(self.rootDirectory, targetInfo)
+            # if path not exist, send 404 error
+            if not os.path.exists(filePath):
+                self._handleERROR(404, "File Not Found")
+            # if request target is not a file, send 404 error.
+            elif not os.path.isfile(filePath):
+                self._handleERROR(404, "File Not Found")
+            #if requested file is out of the root directory, send permission denied. 
+            elif os.path.commonpath([self.rootDirectory]) != os.path.commonpath([self.rootDirectory, filePath]):
+                self._handleERROR(403, "Permission Denied")
+            # else send back requested file
+            else:
+                with open(filePath, "r") as inputFile:
+                    data = inputFile.read()
+                # TODO: handle file type: html, css, binary file, etc.
+                self._sendHEADER(200, "OK", "text/html; charset=utf-8", len(data))
+                self._send(data)
 
     def _handleHEAD(self, message):
         """
@@ -121,6 +152,6 @@ class RequestProcessor(threading.Thread):
         #convert body to a single string
         body = "".join(body).format(errorMessage, errorCode, errorMessage)
         #send header
-        self._sendHEADER("HTTP/1.1 {} {}".format(errorCode, errorMessage), "text/html; charset=utf-8", len(body))
+        self._sendHEADER(errorCode, errorMessage, "text/html; charset=utf-8", len(body))
         #send body
         self._send(body)
