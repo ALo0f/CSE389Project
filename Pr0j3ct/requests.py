@@ -3,8 +3,9 @@
 
 from Pr0j3ct.logging import Logger
 
+import socket
 import threading
-from datetime import datetime
+from email.utils import formatdate
 
 class RequestProcessor(threading.Thread):
     def __init__(self, rootDirectory, indexFile, connSocket, connSocketAddress):
@@ -12,6 +13,7 @@ class RequestProcessor(threading.Thread):
         self.rootDirectory = rootDirectory
         self.indexFile = indexFile
         self.connSocket = connSocket
+        self.connSocket.settimeout(0.1)
         self.connSocketAddress = connSocketAddress
         self.keep_alive = True
         self.logger = Logger(self.__class__.__name__+" {}".format(self.connSocketAddress))
@@ -22,20 +24,22 @@ class RequestProcessor(threading.Thread):
         """
         while self.keep_alive:
             # recieve data from client socket
-            received = self.connSocket.recv(2048)
+            try:
+                received = self.connSocket.recv(2048)
+            except socket.timeout: continue
             # decode byte array to string (HTTP request)
             decodedMessage = received.decode("utf-8")
             #debug by using logger function
             # self.logger.info(decodedMessage)
             # handle request
             self._handle(decodedMessage)
-            
 
     def stop(self):
         """
         Stop processing requests (called by thread scheduler)
         """
         self.keep_alive = False
+        self.connSocket.detach()
 
     def _handle(self, request):
         """
@@ -52,17 +56,31 @@ class RequestProcessor(threading.Thread):
         """
         Send response to client after handling
         """
-        # encode the message to byte array
-        # send back data to client socket
-        pass
+        self.connSocket.send(message.encode("utf-8"))
+
+    def _sendHEADER(self, responseMessage, contentType, length):
+        """
+        send http response header
+        """
+        #create each line of the header
+        header = [
+            "{}\r\n".format(responseMessage),
+            "Date: {}\r\n".format(formatdate(timeval=None, localtime=False, usegmt=True)),
+            "Server: Pr0j3ct\r\n",
+            "Content-Length: {}\r\n".format(length),
+            "Content-Type: {}\r\n".format(contentType),
+        ]
+        #convert header to a single string
+        header = "".join(header)
+        header += "\r\n"
+        #send header
+        self._send(header)
 
     def _handleGET(self, message):
         """
         handle GET http request
         """
         pass
-
-
 
     def _handleHEAD(self, message):
         """
@@ -82,6 +100,7 @@ class RequestProcessor(threading.Thread):
         """
         #create each line for the response html
         body = [
+            "<!DOCTYPE html>\r\n",
             "<html>\r\n",
             "<head>\r\n",
             "<title>{}</title>\r\n",
@@ -93,31 +112,7 @@ class RequestProcessor(threading.Thread):
         ]
         #convert body to a single string
         body = "".join(body).format(errorMessage, errorCode, errorMessage)
-        bodylen = len(body)
-        #encode body to byte array
-        body = body.encode("utf-8")
         #send header
-        self.sendHEADER("HTTP/1.1 {} {}".format(errorCode, errorMessage), "text/html; charset=utf-8", bodylen)
+        self._sendHEADER("HTTP/1.1 {} {}".format(errorCode, errorMessage), "text/html; charset=utf-8", len(body))
         #send body
-        self.connSocket.send(body)
-        print("body sent")
-    
-    def sendHEADER(self, responseMessage, contentType, length):
-        """
-        send http response header
-        """
-        #create each line of the header
-        header = [
-            "{}\r\n".format(responseMessage),
-            # "Date: {}\r\n".format(datetime.now().strftime("%d/%m/%Y %H:%M:%S")),
-            "Server: Pr0j3ct\r\n",
-            "Content-length: {}\r\n".format(length),
-            "Content-type: {}\r\n".format(contentType),
-        ]
-        #convert header to a single string
-        header = "".join(header)
-        #encode header to byte array
-        header = header.encode("utf-8")
-        #send header
-        self.connSocket.send(header)
-        print("header sent")
+        self._send(body)

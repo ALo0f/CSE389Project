@@ -6,7 +6,6 @@ from Pr0j3ct.logging import Logger
 from Pr0j3ct.scheduler import Scheduler
 
 import os
-import sys
 import socket
 
 class Server:
@@ -44,6 +43,7 @@ class Server:
             while True:
                 try:
                     clientsocket, clientaddress = serversocket.accept()
+                    clientaddress = "{}:{}".format(clientaddress[0], clientaddress[1])
                     self.logger.info("Client connected: {}".format(clientaddress))
                     processor = RequestProcessor(self.rootDirectory, self.indexFile, clientsocket, clientaddress)
                     self.scheduler.add(processor)
