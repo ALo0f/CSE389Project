@@ -6,6 +6,7 @@ from Pr0j3ct.logging import Logger
 import os
 import socket
 import threading
+import mimetypes
 import urllib.parse
 from email.utils import formatdate
 
@@ -29,6 +30,10 @@ class RequestProcessor(threading.Thread):
             try:
                 received = self.connSocket.recv(2048)
             except socket.timeout: continue
+            except socket.error as e:
+                self.logger.error(e)
+                self.stop()
+                break
             # decode byte array to string (HTTP request)
             decodedMessage = received.decode("utf-8")
             #debug by using logger function
@@ -124,11 +129,17 @@ class RequestProcessor(threading.Thread):
                 self._handleERROR(403, "Permission Denied")
             # else send back requested file
             else:
-                # TODO: handle file type: html, css, binary file, etc.
-                with open(filePath, "r") as inputFile:
+                # by default, load binary file
+                with open(filePath, "rb") as inputFile:
                     data = inputFile.read()
-                self._sendHEADER(200, "OK", "text/html; charset=utf-8", len(data))
-                self._send(data)
+                # get data type
+                datatype, _ = mimetypes.guess_type(filePath)
+                if not datatype:
+                    # if not able to guess, set to "application/octet-stream" (default binary file type)
+                    datatype = "application/octet-stream"
+                # send header and data
+                self._sendHEADER(200, "OK", datatype, len(data))
+                self._send(data, binary=True)
 
     def _handleHEAD(self, message):
         """
