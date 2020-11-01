@@ -34,7 +34,7 @@ class Scheduler:
             self.tasks.remove(task)
         # start waiting threads, at most max_threads
         for runnable in self.tasks[:self.max_threads]:
-            if not runnable.isAlive():
+            if not runnable.is_alive():
                 runnable.start()
 
     def shutdown(self):
@@ -42,6 +42,6 @@ class Scheduler:
         Shutdown all running threads
         """
         for runnable in self.tasks:
-            if runnable.isAlive():
+            if runnable.is_alive():
                 runnable.stop()
                 runnable.join()
