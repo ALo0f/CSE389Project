@@ -31,4 +31,6 @@ multi-threading:
 ## Extra Feature:
 - [ ] authentication
 - [ ] SSL
-- [ ] cache requests 
+- [ ] cache requests
+- [X] support for all file types
+- [X] support for large files (>1GB)  
