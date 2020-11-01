@@ -112,6 +112,7 @@ class RequestProcessor(threading.Thread):
         """
         handle GET http request
         """
+        # TODO: save most recent GET requests in cache (if file size is < 5MB), and reuse it when requested again
         received = message.split("\n")[0]
         targetInfo = received.split()[1]
         #convert URL to original string
