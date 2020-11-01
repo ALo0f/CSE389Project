@@ -13,7 +13,8 @@ python main.py website 12345
 HTTP:  
 - [ ] GET 
 - [ ] HEAD
-- [ ] POST  
+- [ ] POST
+- [X] ERROR Message  
 
 Logging:  
 - [X] information
