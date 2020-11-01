@@ -6,6 +6,7 @@ from Pr0j3ct.logging import Logger
 from Pr0j3ct.scheduler import Scheduler
 
 import os
+import ssl
 import socket
 
 class Server:
@@ -26,6 +27,19 @@ class Server:
         # log information
         self.logger.info("Server port: {}".format(self.port))
         self.logger.info("Server document root: {}".format(self.rootDirectory))
+        # try to load SSL certificate
+        self.SSL_cert_file = os.path.join("certificates", "signed.cert")
+        self.SSL_key_file = os.path.join("certificates", "signed.private.key")
+        if os.path.isfile(self.SSL_cert_file) and os.path.isfile(self.SSL_key_file):
+            self.SSL_context = ssl.create_default_context(ssl.Purpose.CLIENT_AUTH)
+            self.SSL_context.load_cert_chain(self.SSL_cert_file, self.SSL_key_file)
+            self.SSL_enabled = True
+            self.logger.info("Server SSL enabled")
+        else:
+            self.SSL_context = None
+            self.SSL_cert_file = ""
+            self.SSL_key_file = ""
+            self. SSL_enabled = False
 
     def start(self):
         # create server socket
@@ -45,6 +59,8 @@ class Server:
                     clientsocket, clientaddress = serversocket.accept()
                     clientaddress = "{}:{}".format(clientaddress[0], clientaddress[1])
                     self.logger.info("Client connected: {}".format(clientaddress))
+                    if self.SSL_enabled:
+                        clientsocket = self.SSL_context.wrap_socket(clientsocket, server_side=True)
                     processor = RequestProcessor(self.rootDirectory, self.indexFile, clientsocket, clientaddress)
                     self.scheduler.add(processor)
                 except socket.timeout: pass
