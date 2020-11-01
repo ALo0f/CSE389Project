@@ -6,6 +6,7 @@ from Pr0j3ct.logging import Logger
 import os
 import socket
 import threading
+import urllib.parse
 from email.utils import formatdate
 
 class RequestProcessor(threading.Thread):
@@ -46,6 +47,9 @@ class RequestProcessor(threading.Thread):
         """
         Handle received request message (POST, GET, HEAD)
         """
+        # if empty request, just skip
+        if not request.strip():
+            return
         # recognize message type
         type = request.split()[0].lower()
         # handle POST
@@ -94,6 +98,9 @@ class RequestProcessor(threading.Thread):
         """
         received = message.split("\n")[0]
         targetInfo = received.split()[1]
+        #convert URL to original string
+        targetInfo = urllib.parse.unquote(targetInfo)
+        self.logger.info("GET {}".format(targetInfo))
         #if requested root send back index file
         if targetInfo == "/" :
             with open(os.path.join(self.rootDirectory, self.indexFile), "r") as inputFile:
@@ -102,6 +109,8 @@ class RequestProcessor(threading.Thread):
             self._send(data)
         #else try to recognize target file
         else:
+            # convert to relative target path
+            targetInfo = "." + targetInfo
             #get abosolute filepath
             filePath = os.path.join(self.rootDirectory, targetInfo)
             # if path not exist, send 404 error
@@ -115,9 +124,9 @@ class RequestProcessor(threading.Thread):
                 self._handleERROR(403, "Permission Denied")
             # else send back requested file
             else:
+                # TODO: handle file type: html, css, binary file, etc.
                 with open(filePath, "r") as inputFile:
                     data = inputFile.read()
-                # TODO: handle file type: html, css, binary file, etc.
                 self._sendHEADER(200, "OK", "text/html; charset=utf-8", len(data))
                 self._send(data)
 
