@@ -16,7 +16,7 @@ class RequestProcessor(threading.Thread):
         self.rootDirectory = rootDirectory
         self.indexFile = indexFile
         self.connSocket = connSocket
-        self.connSocket.settimeout(0.1)
+        self.connSocket.settimeout(1)
         self.connSocketAddress = connSocketAddress
         self.keep_alive = True
         self.logger = Logger(self.__class__.__name__+" {}".format(self.connSocketAddress))
@@ -72,12 +72,23 @@ class RequestProcessor(threading.Thread):
 
     def _send(self, message, binary=False):
         """
-        Send response to client after handling
+        Send response to client after handling\\
+        Return `True` if success\\
+        Return `False` if error occured
         """
-        if binary:
-            self.connSocket.send(message)
-        else:
-            self.connSocket.send(message.encode("utf-8"))
+        # set timeout to blocking, for all data to be sent
+        try:
+            self.connSocket.settimeout(None)
+            if binary:
+                self.connSocket.send(message)
+            else:
+                self.connSocket.send(message.encode("utf-8"))
+            # set back timeout
+            self.connSocket.settimeout(1)
+            return True
+        except socket.error as e:
+            self.logger.error(e)
+            return False
 
     def _sendHEADER(self, responseCode, responseMessage, contentType, length):
         """
@@ -129,17 +140,23 @@ class RequestProcessor(threading.Thread):
                 self._handleERROR(403, "Permission Denied")
             # else send back requested file
             else:
-                # by default, load binary file
-                with open(filePath, "rb") as inputFile:
-                    data = inputFile.read()
+                # get file size in bytes
+                fileSize = os.path.getsize(filePath)
                 # get data type
                 datatype, _ = mimetypes.guess_type(filePath)
                 if not datatype:
                     # if not able to guess, set to "application/octet-stream" (default binary file type)
                     datatype = "application/octet-stream"
                 # send header and data
-                self._sendHEADER(200, "OK", datatype, len(data))
-                self._send(data, binary=True)
+                self._sendHEADER(200, "OK", datatype, fileSize)
+                with open(filePath, "rb") as inputFile:
+                    while True:
+                        # read every 2048 bytes
+                        data = inputFile.read(2048)
+                        # if no more data, stop
+                        if not data: break
+                        # if send data failed, break
+                        if not self._send(data, binary=True): break
 
     def _handleHEAD(self, message):
         """
