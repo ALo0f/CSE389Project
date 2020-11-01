@@ -46,11 +46,19 @@ class RequestProcessor(threading.Thread):
         Handle received request message (POST, GET, HEAD)
         """
         # recognize message type
+        type = request.split()[0].lower()
         # handle POST
+        if type == "post" :
+            self._handlePOST(request)
         # handle GET
+        elif type == "get" :
+            self._handleGET(request)
         # handle HEAD
+        elif type == "head" :
+            self._handleHEAD(request)
         # handle not implemented
-        self._handleERROR(501, "Not Implemented")
+        else:
+            self._handleERROR(501, "Not Implemented")
 
     def _send(self, message):
         """
