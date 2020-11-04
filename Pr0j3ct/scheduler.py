@@ -15,6 +15,7 @@ class Scheduler:
         """
         Add runnable class object to thread queue
         """
+        self.logger.info("New thread {} added".format(runnable.connSocketAddress))
         self.tasks.append(runnable)
         self._update()
 
@@ -29,6 +30,7 @@ class Scheduler:
         for runnable in self.tasks:
             if not runnable.keep_alive:
                 to_delete.append(runnable)
+                self.logger.info("Dead thread {} removed".format(runnable.connSocketAddress))
         # remove dead threads
         for task in to_delete:
             self.tasks.remove(task)
@@ -36,6 +38,7 @@ class Scheduler:
         for runnable in self.tasks[:self.max_threads]:
             if not runnable.is_alive():
                 runnable.start()
+                self.logger.info("Thread {} started".format(runnable.connSocketAddress))
 
     def shutdown(self):
         """
@@ -45,3 +48,5 @@ class Scheduler:
             if runnable.is_alive():
                 runnable.stop()
                 runnable.join()
+                self.logger.info("Thread {} stopped".format(runnable.connSocketAddress))
+        self.logger.close()

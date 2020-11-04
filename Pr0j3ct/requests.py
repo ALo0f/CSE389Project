@@ -19,7 +19,7 @@ class RequestProcessor(threading.Thread):
         self.connSocket.settimeout(1)
         self.connSocketAddress = connSocketAddress
         self.keep_alive = True
-        self.logger = Logger(self.__class__.__name__+" {}".format(self.connSocketAddress))
+        self.logger = Logger(self.__class__.__name__+"_{}".format(self.connSocketAddress))
 
     def run(self):
         """
@@ -45,6 +45,7 @@ class RequestProcessor(threading.Thread):
         """
         self.keep_alive = False
         self.connSocket.detach()
+        self.logger.close()
 
     def _handle(self, request):
         """

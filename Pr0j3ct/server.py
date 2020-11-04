@@ -71,4 +71,5 @@ class Server:
             # on keyboard interrupt, close server and all running sub-threads
             self.logger.info("Server stopped")
             self.scheduler.shutdown()
+            self.logger.close()
             serversocket.close()
