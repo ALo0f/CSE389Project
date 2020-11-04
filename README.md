@@ -20,8 +20,8 @@ Logging:
 - [X] information
 - [X] warning
 - [X] Error
-- [ ] cacheManagement
-- [ ] logFilesManagement
+- [X] cacheManagement
+- [x] logFilesManagement
 
 multi-threading:
 - [x] task queue
