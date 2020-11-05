@@ -162,7 +162,34 @@ class RequestProcessor(threading.Thread):
         """
         handle HEAD http request
         """
-        pass
+        received = message.split("\n")[0]
+        targetInfo = received.split()[1]
+        #convert URL to original string
+        targetInfo = urllib.parse.unquote(targetInfo)
+        self.logger.info("GET {}".format(targetInfo))
+        #if requested root send back index file header
+        if targetInfo == "/" :
+            with open(os.path.join(self.rootDirectory, self.indexFile), "r") as inputFile:
+                data = inputFile.read()
+            self._sendHEADER(200, "OK", "text/html; charset=utf-8", len(data))
+            
+        #else try to recognize target file header
+        else:
+            # convert to relative target path
+            targetInfo = "." + targetInfo
+            #get abosolute filepath
+            filePath = os.path.join(self.rootDirectory, targetInfo)
+            
+    
+            # get file size in bytes
+            fileSize = os.path.getsize(filePath)
+            # get data type
+            datatype, _ = mimetypes.guess_type(filePath)
+            if not datatype:
+                    # if not able to guess, set to "application/octet-stream" (default binary file type)
+                datatype = "application/octet-stream"
+                # send header 
+            self._sendHEADER(200, "OK", datatype, fileSize)
 
     def _handlePOST(self, message):
         """
