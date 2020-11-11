@@ -37,7 +37,7 @@ class Logger:
         Log error level message
         """
         errorMessage = "[{} {} {}] {}".format("ERROR", datetime.now().strftime("%d/%m/%Y %H:%M:%S"), self.caller, message)
-        print(errorMessage.replace("ERROR", "\033[38;5;1m\033[5mERROR\033[0m", 1)) # print red and blinking ERROR
+        print(errorMessage.replace("ERROR", "\033[38;5;196m\033[5mERROR\033[0m", 1)) # print red and blinking ERROR
         self.cache.append(errorMessage)
         self._update()
 
