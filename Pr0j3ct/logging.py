@@ -19,7 +19,7 @@ class Logger:
         Log information level message
         """
         logMessage = "[{} {} {}] {}".format("INFO", datetime.now().strftime("%d/%m/%Y %H:%M:%S"), self.caller, message)
-        print(logMessage.replace("INFO", "\033[92;40mINFO\033[0m", 1)) # print green INFO
+        print(logMessage.replace("INFO", "\033[38;5;46mINFO\033[0m", 1)) # print green INFO
         self.cache.append(logMessage)
         self._update()
 
@@ -28,7 +28,7 @@ class Logger:
         Log warning level message
         """
         warnMessage = "[{} {} {}] {}".format("WARN", datetime.now().strftime("%d/%m/%Y %H:%M:%S"), self.caller, message)
-        print(warnMessage.replace("WARN", "\033[93;1;40mWARN\033[0m", 1)) # print yellow and bold WARN
+        print(warnMessage.replace("WARN", "\033[38;5;226m\033[1mWARN\033[0m", 1)) # print yellow and underscore WARN
         self.cache.append(warnMessage)
         self._update()
 
@@ -37,7 +37,7 @@ class Logger:
         Log error level message
         """
         errorMessage = "[{} {} {}] {}".format("ERROR", datetime.now().strftime("%d/%m/%Y %H:%M:%S"), self.caller, message)
-        print(errorMessage.replace("ERROR", "\033[31;5;40mERROR\033[0m", 1)) # print red and blinking ERROR
+        print(errorMessage.replace("ERROR", "\033[38;5;1m\033[5mERROR\033[0m", 1)) # print red and blinking ERROR
         self.cache.append(errorMessage)
         self._update()
 
