@@ -73,3 +73,37 @@ python gencert.py -uninstall
 For `Ubuntu/Debian`, the certificate is installed at `/usr/local/share/ca-certificates/Pr0j3ct.crt`  
 For `Red Hat/CentOS`, the certificate is installed at `/etc/pki/ca-trust/source/anchors/Pr0j3ct.crt`  
 For `Arch Linux`, the certificate is installed at `/etc/ca-certificates/trust-source/anchors/Pr0j3ct.crt`
+
+------
+
+## Authentication Rules
+
+A `rules.json` should be put in root directory of the website, which has the format:  
+```json
+{
+    "Allow": [
+        "index.html"
+    ],
+    "Forbidden": [
+        "*"
+    ],
+    "Exception": [
+        {
+            "Username": "somebody",
+            "Files": [
+                "somepage.html"
+            ]
+        }
+    ],
+    "Database": "database",
+    "Handler": {
+        "somepage.html": "somepage.html.py"
+    }
+}
+```
+* `Allow` -> all allowed pages for all users  
+* `Forbidden` -> all forbidden pages, unless specified in `Exception`  
+* `Exception` -> accessible files for each specific user  
+* `Database` -> a database for the website, storing username and password, can be empty string if no database  
+* `Handler` -> script file for handling parameters for each specific html page, script should take in parameters and return new html page in String or None  
+
