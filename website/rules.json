@@ -1,11 +1,13 @@
 {
     "Allow": [
         "index.html",
-        "login.html"
+        "login.html",
+        ".media/*.jpg"
     ],
     "Forbidden": [
         "*",
-        ".meta/*"
+        ".meta/*",
+        ".media/*.md"
     ],
     "Exception": [
         {

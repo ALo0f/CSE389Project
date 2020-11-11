@@ -5,6 +5,65 @@
     <title>Login</title>
 </head>
 <body>
-    <h1>Just another page for test!</h1>
+    <style>
+        body::before{
+            background-image: url('.media/white-backgroundppt-349.jpg');
+            background-repeat: no-repeat;
+            background-size: cover;
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.9;
+            z-index: -1;
+        }
+        form{
+            display: block;
+            margin-left: auto;
+            margin: auto;
+            border-style: solid;
+            border-radius: 5px;
+            margin-top: 15%;
+            width: 30%;
+            padding: 20px;
+        }
+        #formContent{
+            display: block;
+            margin-top: 10px;
+            width: auto;
+            margin-left: auto;
+            margin-right: auto;
+            text-align: center;
+        }
+        .title{
+            font-size: 30px;
+            font-family: 'Courier New', Courier, monospace;
+            cursor: default;
+        }
+        .subtitle{
+            font-size: 25px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        .inputbox{
+            border-radius: 5px;
+            font-size: 20px;
+        }
+        .submitbox{
+            border-style: none;
+            cursor: pointer;
+            font-size: 18px;
+            outline: none;
+        }
+    </style>
+    <form class="loginForm" method="POST">
+        <div id="formContent" class="title">Login Here</div>
+        <label id="formContent" class="subtitle" for="username">User Name</label>
+        <input id="formContent" class="inputbox" type="text" name="username">
+        <label id="formContent" class="subtitle" for="password">Password</label>
+        <input id="formContent" class="inputbox" type="password" name="password">
+        <input id="formContent" class="submitbox" type="submit" value="Submit">
+    </form>
 </body>
 </html>

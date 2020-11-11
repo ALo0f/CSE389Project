@@ -3,8 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <title>CSE 389 Final Project</title>
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.3.2/styles/default.min.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/highlight.js/10.3.2/highlight.min.js"></script>
 </head>
 <body>
-    <h1>CSE 389 Final Project</h1>
+    <script>hljs.initHighlightingOnLoad();</script>
+    <style>
+        body::before{
+            background-image: url('.media/white-backgroundppt-349.jpg');
+            background-repeat: no-repeat;
+            background-size: cover;
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0.9;
+            z-index: -1;
+        }
+        .title{
+            display: block;
+            text-align: center;
+            font-size: 80px;
+            font-family: 'Courier New', Courier, monospace;
+            font-weight: 600;
+            margin-top: 8%;
+            cursor: default;
+        }
+        #code{
+            border-style: solid;
+            border-radius: 10px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            margin-top: 10%;
+            padding: 10px;
+            width: 50%;
+            font-size: 20px;
+            font-family: monospace;
+            color: white;
+            background-color: black;
+        }
+        .login{
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            margin-top: 5%;
+            font-size: 25px;
+            font-family: 'Times New Roman', Times, serif;
+            cursor: pointer;
+            border: none;
+            padding: 5px;
+            border-radius: 5px;
+            outline: none;
+        }
+    </style>
+    <div class="title">
+        Pr0j3ct
+    </div>
+    <pre><code class="python" id="code">
+        from Pr0j3ct.server import Server<br/>
+        myServer = Server(root, port, enableSSL=True)<br/>
+        myServer.start()
+    </code></pre>
+    <button class="login" onclick="location.href='login.html'">
+        Login
+    </button>
 </body>
 </html>
