@@ -250,6 +250,7 @@ class RequestProcessor(threading.Thread):
         # check whether POST to login.html
         # proceed only if login.html
         # get username and password from POST content
+        print(message)
         username = None
         password = None
         # user authHandler to verify the username and password

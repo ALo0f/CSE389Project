@@ -61,14 +61,16 @@ class Server:
                 try:
                     clientsocket, clientaddress = serversocket.accept()
                     clientaddress = "{}:{}".format(clientaddress[0], clientaddress[1])
-                    self.logger.info("Client connected: {}".format(clientaddress))
                     if self.SSL_enabled:
                         clientsocket = self.SSL_context.wrap_socket(clientsocket, server_side=True)
+                    self.logger.info("Client connected: {}".format(clientaddress))
                     processor = RequestProcessor(self.rootDirectory, self.indexFile, clientsocket, clientaddress, self.authHandler)
                     self.scheduler.add(processor)
                 except socket.timeout: pass
                 except ssl.SSLError as e:
                     # ignore HTTP request error in HTTPS mode
+                    self.logger.error(e)
+                except ConnectionAbortedError as e:
                     self.logger.error(e)
         except KeyboardInterrupt:
             # on keyboard interrupt, close server and all running sub-threads
