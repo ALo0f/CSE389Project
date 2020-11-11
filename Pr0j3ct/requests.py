@@ -141,9 +141,6 @@ class RequestProcessor(threading.Thread):
             targetInfo = "." + targetInfo
             #get abosolute filepath
             filePath = os.path.join(self.rootDirectory, targetInfo)
-            self.authHandler.mutex.acquire()
-            authorized = self.authHandler.auth(filePath, self.authUser)
-            self.authHandler.mutex.release()
             # if path not exist, send 404 error
             if not os.path.exists(filePath):
                 self.logger.warn("GET {} is not a path".format(filePath))
@@ -156,12 +153,16 @@ class RequestProcessor(threading.Thread):
             elif os.path.commonpath([self.rootDirectory]) != os.path.commonpath([self.rootDirectory, filePath]):
                 self.logger.warn("GET {} not in root directory".format(filePath))
                 self._handleERROR(403, "Permission Denied")
-            # if not authorized
-            elif not authorized:
-                self.logger.warn("GET {} not authorized".format(filePath))
-                self._handleERROR(403, "Permission Denied")
             # else send back requested file
             else:
+                self.authHandler.mutex.acquire()
+                authorized = self.authHandler.auth(filePath, self.authUser)
+                self.authHandler.mutex.release()
+                # if not authorized
+                if not authorized:
+                    self.logger.warn("GET {} not authorized".format(filePath))
+                    self._handleERROR(403, "Permission Denied")
+                    return
                 self.authHandler.mutex.acquire()
                 data = self.authHandler.handle(filePath, targetParams)
                 self.authHandler.mutex.release()
@@ -209,9 +210,6 @@ class RequestProcessor(threading.Thread):
             targetInfo = "." + targetInfo
             #get abosolute filepath
             filePath = os.path.join(self.rootDirectory, targetInfo)
-            self.authHandler.mutex.acquire()
-            authorized = self.authHandler.auth(filePath, self.authUser)
-            self.authHandler.mutex.release()
             # if path not exist, send 404 error
             if not os.path.exists(filePath):
                 self.logger.warn("HEAD {} is not a path".format(filePath))
@@ -224,12 +222,16 @@ class RequestProcessor(threading.Thread):
             elif os.path.commonpath([self.rootDirectory]) != os.path.commonpath([self.rootDirectory, filePath]):
                 self.logger.warn("HEAD {} not in root directory".format(filePath))
                 self._handleERROR(403, "Permission Denied", nobody=True)
-            # if not authorized
-            elif not authorized:
-                self.logger.warn("GET {} not authorized".format(filePath))
-                self._handleERROR(403, "Permission Denied", nobody=True)
             # else send back requested file
             else:
+                self.authHandler.mutex.acquire()
+                authorized = self.authHandler.auth(filePath, self.authUser)
+                self.authHandler.mutex.release()
+                # if not authorized
+                if not authorized:
+                    self.logger.warn("GET {} not authorized".format(filePath))
+                    self._handleERROR(403, "Permission Denied", nobody=True)
+                    return
                 # get file size in bytes
                 fileSize = os.path.getsize(filePath)
                 # get data type
