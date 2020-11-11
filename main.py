@@ -1,4 +1,3 @@
-import os
 import sys
 from Pr0j3ct.server import Server
 

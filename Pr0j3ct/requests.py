@@ -1,7 +1,6 @@
 # requests.py
 # implements HTTP Request Processer class
 
-from os import error
 from Pr0j3ct.logging import Logger
 
 import os
