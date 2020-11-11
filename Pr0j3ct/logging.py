@@ -11,13 +11,15 @@ class Logger:
         self.defaultFolder = ".log_entry"
         if not os.path.exists(self.defaultFolder):
             os.makedirs(self.defaultFolder)
+        # if on Windows, enable color mode in terminal
+        if (os.name == "nt"): os.system("COLOR")
 
     def info(self, message):
         """
         Log information level message
         """
         logMessage = "[{} {} {}] {}".format("INFO", datetime.now().strftime("%d/%m/%Y %H:%M:%S"), self.caller, message)
-        print(logMessage)
+        print(logMessage.replace("INFO", "\033[38;5;46mINFO\033[0m", 1)) # print green INFO
         self.cache.append(logMessage)
         self._update()
 
@@ -25,9 +27,8 @@ class Logger:
         """
         Log warning level message
         """
-        #print("[{} {} {}] {}".format("WARN", datetime.now().strftime("%d/%m/%Y %H:%M:%S"), self.caller, message))
         warnMessage = "[{} {} {}] {}".format("WARN", datetime.now().strftime("%d/%m/%Y %H:%M:%S"), self.caller, message)
-        print(warnMessage)
+        print(warnMessage.replace("WARN", "\033[38;5;226m\033[1mWARN\033[0m", 1)) # print yellow and underscore WARN
         self.cache.append(warnMessage)
         self._update()
 
@@ -35,9 +36,8 @@ class Logger:
         """
         Log error level message
         """
-        #print("[{} {} {}] {}".format("ERROR", datetime.now().strftime("%d/%m/%Y %H:%M:%S"), self.caller, message))
         errorMessage = "[{} {} {}] {}".format("ERROR", datetime.now().strftime("%d/%m/%Y %H:%M:%S"), self.caller, message)
-        print(errorMessage)
+        print(errorMessage.replace("ERROR", "\033[38;5;196m\033[5mERROR\033[0m", 1)) # print red and blinking ERROR
         self.cache.append(errorMessage)
         self._update()
 

@@ -1,4 +1,3 @@
-import os
 import sys
 from Pr0j3ct.server import Server
 
@@ -9,5 +8,5 @@ if __name__=="__main__":
     root = sys.argv[1]
     port = int(sys.argv[2])
     # try to enable SSL for https
-    myServer = Server(root, port, enableSSL=True)
+    myServer = Server(root, port, enableSSL=False)
     myServer.start()

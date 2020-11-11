@@ -3,8 +3,6 @@
 
 from Pr0j3ct.logging import Logger
 
-import threading
-
 class Scheduler:
     def __init__(self, max_threads=50):
         self.max_threads = max_threads

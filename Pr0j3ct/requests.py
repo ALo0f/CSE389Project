@@ -35,7 +35,12 @@ class RequestProcessor(threading.Thread):
                 self.stop()
                 break
             # decode byte array to string (HTTP request)
-            decodedMessage = received.decode("utf-8")
+            try:
+                decodedMessage = received.decode("utf-8")
+            except UnicodeDecodeError as e:
+                self.logger.error(e)
+                self.stop()
+                break
             # handle request
             self._handle(decodedMessage)
 
@@ -67,6 +72,7 @@ class RequestProcessor(threading.Thread):
             self._handleHEAD(request)
         # handle not implemented
         else:
+            self.logger.warn("{} request type is not implemented")
             self._handleERROR(501, "Not Implemented")
 
     def _send(self, message, binary=False):
@@ -131,12 +137,15 @@ class RequestProcessor(threading.Thread):
             filePath = os.path.join(self.rootDirectory, targetInfo)
             # if path not exist, send 404 error
             if not os.path.exists(filePath):
+                self.logger.warn("GET {} is not a path".format(filePath))
                 self._handleERROR(404, "File Not Found")
             # if request target is not a file, send 404 error.
             elif not os.path.isfile(filePath):
+                self.logger.warn("GET {} is not a file".format(filePath))
                 self._handleERROR(404, "File Not Found")
             #if requested file is out of the root directory, send permission denied. 
             elif os.path.commonpath([self.rootDirectory]) != os.path.commonpath([self.rootDirectory, filePath]):
+                self.logger.warn("GET {} not in root directory".format(filePath))
                 self._handleERROR(403, "Permission Denied")
             # else send back requested file
             else:
@@ -146,6 +155,7 @@ class RequestProcessor(threading.Thread):
                 datatype, _ = mimetypes.guess_type(filePath)
                 if not datatype:
                     # if not able to guess, set to "application/octet-stream" (default binary file type)
+                    self.logger.warn("GET {} unknown mime type, set to application/octet-stream".format(filePath))
                     datatype = "application/octet-stream"
                 # send header and data
                 self._sendHEADER(200, "OK", datatype, fileSize)
@@ -156,13 +166,54 @@ class RequestProcessor(threading.Thread):
                         # if no more data, stop
                         if not data: break
                         # if send data failed, break
-                        if not self._send(data, binary=True): break
+                        if not self._send(data, binary=True):
+                            self.logger.warn("GET {} failed to send".format(filePath))
+                            break
 
     def _handleHEAD(self, message):
         """
         handle HEAD http request
         """
-        pass
+        received = message.split("\n")[0]
+        targetInfo = received.split()[1]
+        #convert URL to original string
+        targetInfo = urllib.parse.unquote(targetInfo)
+        self.logger.info("HEAD {}".format(targetInfo))
+        #if requested root send back index file header
+        if targetInfo == "/" :
+            with open(os.path.join(self.rootDirectory, self.indexFile), "r") as inputFile:
+                data = inputFile.read()
+            self._sendHEADER(200, "OK", "text/html; charset=utf-8", -1) # -1 to indicate no body
+        #else try to recognize target file header
+        else:
+            # convert to relative target path
+            targetInfo = "." + targetInfo
+            #get abosolute filepath
+            filePath = os.path.join(self.rootDirectory, targetInfo)
+            # if path not exist, send 404 error
+            if not os.path.exists(filePath):
+                self.logger.warn("HEAD {} is not a path".format(filePath))
+                self._handleERROR(404, "File Not Found", nobody=True)
+            # if request target is not a file, send 404 error.
+            elif not os.path.isfile(filePath):
+                self.logger.warn("HEAD {} is not a file".format(filePath))
+                self._handleERROR(404, "File Not Found", nobody=True)
+            #if requested file is out of the root directory, send permission denied. 
+            elif os.path.commonpath([self.rootDirectory]) != os.path.commonpath([self.rootDirectory, filePath]):
+                self.logger.warn("HEAD {} not in root directory".format(filePath))
+                self._handleERROR(403, "Permission Denied", nobody=True)
+            # else send back requested file
+            else:
+                # get file size in bytes
+                fileSize = os.path.getsize(filePath)
+                # get data type
+                datatype, _ = mimetypes.guess_type(filePath)
+                if not datatype:
+                    # if not able to guess, set to "application/octet-stream" (default binary file type)
+                    self.logger.warn("HEAD {} unknown mime type, set to application/octet-stream".format(filePath))
+                    datatype = "application/octet-stream"
+                    # send header 
+                self._sendHEADER(200, "OK", datatype, fileSize)
 
     def _handlePOST(self, message):
         """
@@ -170,7 +221,7 @@ class RequestProcessor(threading.Thread):
         """
         pass
 
-    def _handleERROR(self, errorCode, errorMessage):
+    def _handleERROR(self, errorCode, errorMessage, nobody=False):
         """
         handle http request ERROR
         """
@@ -190,5 +241,6 @@ class RequestProcessor(threading.Thread):
         body = "".join(body).format(errorMessage, errorCode, errorMessage)
         #send header
         self._sendHEADER(errorCode, errorMessage, "text/html; charset=utf-8", len(body))
-        #send body
-        self._send(body)
+        if not nobody:
+            #send body
+            self._send(body)
