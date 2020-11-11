@@ -1,0 +1,22 @@
+{
+    "Allow": [
+        "index.html",
+        "login.html"
+    ],
+    "Forbidden": [
+        "*",
+        ".meta/*"
+    ],
+    "Exception": [
+        {
+            "Username": "sida",
+            "Files": [
+                "presentation.html"
+            ]
+        }
+    ],
+    "Database": ".meta/users.keys",
+    "Handler": {
+        "login.html": ".meta/login.html.py"
+    }
+}

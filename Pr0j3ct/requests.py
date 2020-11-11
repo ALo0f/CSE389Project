@@ -11,10 +11,12 @@ import urllib.parse
 from email.utils import formatdate
 
 class RequestProcessor(threading.Thread):
-    def __init__(self, rootDirectory, indexFile, connSocket, connSocketAddress):
+    def __init__(self, rootDirectory, indexFile, connSocket, connSocketAddress, authHandler):
         threading.Thread.__init__(self)
         self.rootDirectory = rootDirectory
         self.indexFile = indexFile
+        self.authHandler = authHandler
+        self.authUser = None
         self.connSocket = connSocket
         self.connSocket.settimeout(1)
         self.connSocketAddress = connSocketAddress
@@ -117,16 +119,20 @@ class RequestProcessor(threading.Thread):
         """
         handle GET http request
         """
-        # TODO: save most recent GET requests in cache (if file size is < 5MB), and reuse it when requested again
         received = message.split("\n")[0]
-        targetInfo = received.split()[1]
         #convert URL to original string
-        targetInfo = urllib.parse.unquote(targetInfo)
+        targetInfoParsed = urllib.parse.urlparse(received.split()[1])
+        targetInfo = urllib.parse.unquote(targetInfoParsed.path)
+        targetParams = urllib.parse.parse_qs(targetInfoParsed.query)
         self.logger.info("GET {}".format(targetInfo))
         #if requested root send back index file
-        if targetInfo == "/" :
-            with open(os.path.join(self.rootDirectory, self.indexFile), "r") as inputFile:
-                data = inputFile.read()
+        if targetInfo == "/":
+            self.authHandler.mutex.acquire()
+            data = self.authHandler.handle(os.path.join(self.rootDirectory, self.indexFile), targetParams)
+            self.authHandler.mutex.release()
+            if not data:
+                with open(os.path.join(self.rootDirectory, self.indexFile), "r") as inputFile:
+                    data = inputFile.read()
             self._sendHEADER(200, "OK", "text/html; charset=utf-8", len(data))
             self._send(data)
         #else try to recognize target file
@@ -135,6 +141,9 @@ class RequestProcessor(threading.Thread):
             targetInfo = "." + targetInfo
             #get abosolute filepath
             filePath = os.path.join(self.rootDirectory, targetInfo)
+            self.authHandler.mutex.acquire()
+            authorized = self.authHandler.auth(filePath, self.authUser)
+            self.authHandler.mutex.release()
             # if path not exist, send 404 error
             if not os.path.exists(filePath):
                 self.logger.warn("GET {} is not a path".format(filePath))
@@ -147,28 +156,39 @@ class RequestProcessor(threading.Thread):
             elif os.path.commonpath([self.rootDirectory]) != os.path.commonpath([self.rootDirectory, filePath]):
                 self.logger.warn("GET {} not in root directory".format(filePath))
                 self._handleERROR(403, "Permission Denied")
+            # if not authorized
+            elif not authorized:
+                self.logger.warn("GET {} not authorized".format(filePath))
+                self._handleERROR(403, "Permission Denied")
             # else send back requested file
             else:
-                # get file size in bytes
-                fileSize = os.path.getsize(filePath)
-                # get data type
-                datatype, _ = mimetypes.guess_type(filePath)
-                if not datatype:
-                    # if not able to guess, set to "application/octet-stream" (default binary file type)
-                    self.logger.warn("GET {} unknown mime type, set to application/octet-stream".format(filePath))
-                    datatype = "application/octet-stream"
-                # send header and data
-                self._sendHEADER(200, "OK", datatype, fileSize)
-                with open(filePath, "rb") as inputFile:
-                    while True:
-                        # read every 2048 bytes
-                        data = inputFile.read(2048)
-                        # if no more data, stop
-                        if not data: break
-                        # if send data failed, break
-                        if not self._send(data, binary=True):
-                            self.logger.warn("GET {} failed to send".format(filePath))
-                            break
+                self.authHandler.mutex.acquire()
+                data = self.authHandler.handle(filePath, targetParams)
+                self.authHandler.mutex.release()
+                if not data:
+                    # get file size in bytes
+                    fileSize = os.path.getsize(filePath)
+                    # get data type
+                    datatype, _ = mimetypes.guess_type(filePath)
+                    if not datatype:
+                        # if not able to guess, set to "application/octet-stream" (default binary file type)
+                        self.logger.warn("GET {} unknown mime type, set to application/octet-stream".format(filePath))
+                        datatype = "application/octet-stream"
+                    # send header and data
+                    self._sendHEADER(200, "OK", datatype, fileSize)
+                    with open(filePath, "rb") as inputFile:
+                        while True:
+                            # read every 2048 bytes
+                            data = inputFile.read(2048)
+                            # if no more data, stop
+                            if not data: break
+                            # if send data failed, break
+                            if not self._send(data, binary=True):
+                                self.logger.warn("GET {} failed to send".format(filePath))
+                                break
+                else:
+                    self._sendHEADER(200, "OK", "text/html; charset=utf-8", len(data))
+                    self._send(data)
 
     def _handleHEAD(self, message):
         """
@@ -183,13 +203,15 @@ class RequestProcessor(threading.Thread):
         if targetInfo == "/" :
             with open(os.path.join(self.rootDirectory, self.indexFile), "r") as inputFile:
                 data = inputFile.read()
-            self._sendHEADER(200, "OK", "text/html; charset=utf-8", -1) # -1 to indicate no body
-        #else try to recognize target file header
+            self._sendHEADER(200, "OK", "text/html; charset=utf-8", len(data))
         else:
             # convert to relative target path
             targetInfo = "." + targetInfo
             #get abosolute filepath
             filePath = os.path.join(self.rootDirectory, targetInfo)
+            self.authHandler.mutex.acquire()
+            authorized = self.authHandler.auth(filePath, self.authUser)
+            self.authHandler.mutex.release()
             # if path not exist, send 404 error
             if not os.path.exists(filePath):
                 self.logger.warn("HEAD {} is not a path".format(filePath))
@@ -201,6 +223,10 @@ class RequestProcessor(threading.Thread):
             #if requested file is out of the root directory, send permission denied. 
             elif os.path.commonpath([self.rootDirectory]) != os.path.commonpath([self.rootDirectory, filePath]):
                 self.logger.warn("HEAD {} not in root directory".format(filePath))
+                self._handleERROR(403, "Permission Denied", nobody=True)
+            # if not authorized
+            elif not authorized:
+                self.logger.warn("GET {} not authorized".format(filePath))
                 self._handleERROR(403, "Permission Denied", nobody=True)
             # else send back requested file
             else:
@@ -219,7 +245,19 @@ class RequestProcessor(threading.Thread):
         """
         handle POST http request
         """
-        pass
+        # check whether POST to login.html
+        # proceed only if login.html
+        # get username and password from POST content
+        username = None
+        password = None
+        # user authHandler to verify the username and password
+        self.authHandler.mutex.acquire()
+        verified = self.authHandler.verify(username, password)
+        self.authHandler.mutex.release()
+        if verified:
+            self.authUser = username
+            self.logger.info("User {} logged in successfully".format(self.authUser))
+        # send back some data and header
 
     def _handleERROR(self, errorCode, errorMessage, nobody=False):
         """

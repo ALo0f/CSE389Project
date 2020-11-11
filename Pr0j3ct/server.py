@@ -4,6 +4,7 @@
 from Pr0j3ct.requests import RequestProcessor
 from Pr0j3ct.logging import Logger
 from Pr0j3ct.scheduler import Scheduler
+from Pr0j3ct.authhandler import AuthHandler
 
 import os
 import ssl
@@ -27,6 +28,8 @@ class Server:
         # log information
         self.logger.info("Server port: {}".format(self.port))
         self.logger.info("Server document root: {}".format(self.rootDirectory))
+        # load authentication handler
+        self.authHandler = AuthHandler(self.rootDirectory)
         # try to load SSL certificate
         self.SSL_cert_file = os.path.join("certificates", "signed.crt")
         self.SSL_key_file = os.path.join("certificates", "signed.private.key")
@@ -61,7 +64,7 @@ class Server:
                     self.logger.info("Client connected: {}".format(clientaddress))
                     if self.SSL_enabled:
                         clientsocket = self.SSL_context.wrap_socket(clientsocket, server_side=True)
-                    processor = RequestProcessor(self.rootDirectory, self.indexFile, clientsocket, clientaddress)
+                    processor = RequestProcessor(self.rootDirectory, self.indexFile, clientsocket, clientaddress, self.authHandler)
                     self.scheduler.add(processor)
                 except socket.timeout: pass
                 except ssl.SSLError as e:
@@ -71,5 +74,6 @@ class Server:
             # on keyboard interrupt, close server and all running sub-threads
             self.logger.info("Server stopped")
             self.scheduler.shutdown()
+            self.authHandler.shutdown()
             self.logger.close()
             serversocket.close()
