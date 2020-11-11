@@ -12,7 +12,7 @@ python main.py website 12345
 ## Features:  
 HTTP:  
 - [X] GET 
-- [ ] HEAD
+- [X] HEAD
 - [ ] POST
 - [X] ERROR Message  
 
