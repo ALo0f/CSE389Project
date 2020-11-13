@@ -136,7 +136,7 @@ class RequestProcessor(threading.Thread):
                 self._sendHEADER(200, "OK", "text/html; charset=utf-8", len(data))
                 self._send(data)
             elif len(data) == 1:
-                self._send(data[0])
+                self._send(data[0] + "/r/n")
             else:
                 self._send(data[0] + "/r/n")
                 self._send(data[1])
@@ -193,7 +193,7 @@ class RequestProcessor(threading.Thread):
                                 self.logger.warn("GET {} failed to send".format(filePath))
                                 break
                 elif len(data) == 1:
-                    self._send(data[0])
+                    self._send(data[0] + "/r/n")
                 else:
                     self._send(data[0] + "/r/n")
                     self._send(data[1])
@@ -218,7 +218,7 @@ class RequestProcessor(threading.Thread):
                     data = inputFile.read()
                 self._sendHEADER(200, "OK", "text/html; charset=utf-8", len(data))
             elif len(data) == 1:
-                self._send(data[0])
+                self._send(data[0] + "/r/n")
             else:
                 self._send(data[0] + "/r/n") # first is header information
         else:
@@ -263,7 +263,7 @@ class RequestProcessor(threading.Thread):
                         # send header 
                     self._sendHEADER(200, "OK", datatype, fileSize)
                 elif len(data) == 1:
-                    self._send(data[0])
+                    self._send(data[0] + "/r/n")
                 else:
                     self._send(data[0] + "/r/n")
 
@@ -271,32 +271,33 @@ class RequestProcessor(threading.Thread):
         """
         handle POST http request
         """
-        # check whether POST to login.html
-        # proceed only if login.html
-        # get username and password from POST content
-        received = message.split("\n")[0]
-        targetInfo = received.split()[1]
+        # get target info and parameters
+        targetInfoParsed = urllib.parse.urlparse(message.split("\n")[0].split()[1])
+        targetInfo = urllib.parse.unquote(targetInfoParsed.path)
+        targetParams = urllib.parse.parse_qs(message.split("\r\n\r\n")[-1])
         #convert URL to original string
         targetInfo = urllib.parse.unquote(targetInfo)
         self.logger.info("POST {}".format(targetInfo))
-        #if requested root send back index file header
-        if targetInfo == "/login.html" :
-            with open(os.path.join(self.rootDirectory, targetInfo), "r") as inputFile:
-                data = inputFile.read()
-            self._sendHEADER(200, "OK", "text/html; charset=utf-8", len(data))
-        else:
-            pass
-        print(message)
-        username = None
-        password = None
-        # user authHandler to verify the username and password
+        # handle parameters
         self.authHandler.mutex.acquire()
-        verified = self.authHandler.verify(username, password)
+        data = self.authHandler.handle(os.path.join(self.rootDirectory, targetInfo), targetParams)
         self.authHandler.mutex.release()
-        if verified:
-            self.authUser = username
-            self.logger.info("User {} logged in successfully".format(self.authUser))
-        # send back some data and header
+        if len(data) <= 0:
+            self.logger.warn("POST request is not handled")
+            self._handleERROR(501, "Not Implemented")
+        elif len(data) == 1:
+            #if is login page, do authentication as well
+            if (targetInfo.lower() == "/login.html") and "username" in targetParams.keys():
+                # specific case, len(data) == 1 means login success
+                self.logger.info("login successful")
+                self.authUser = targetParams["username"]
+            self._send(data[0] + "\r\n")
+        else:
+            if targetInfo.lower() == "/login.html":
+                self.logger.warn("login not successful")
+                self.authUser = None
+            self._send(data[0] + "\r\n")
+            self._send(data[1])
 
     def _handleERROR(self, errorCode, errorMessage, nobody=False):
         """

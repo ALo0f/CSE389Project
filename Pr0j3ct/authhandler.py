@@ -134,7 +134,7 @@ class AuthHandler:
         """
         Handle parameters using specified handlers, only for html pages
         """
-        if not params: return
+        if not params: return []
         pathHead, pathTail = ntpath.split(path)
         filename = pathTail or ntpath.basename(pathHead)
         for key, val in self.rules[self.KEY_Handler].items():
@@ -148,6 +148,7 @@ class AuthHandler:
                 result = proc.communicate()[0]
                 if len(result) <= 0: return []
                 result = result.decode("utf-8").split("\r\n\r\n") # read output from handler file and convert to string
+                result = [x for x in result if x]
                 return result
         self.logger.warn("Failed to handle {}, unknown handler".format(path))
         return []
