@@ -13,7 +13,7 @@ python main.py website 12345
 HTTP:  
 - [X] GET 
 - [X] HEAD
-- [ ] POST
+- [X] POST
 - [X] ERROR Message  
 
 Logging:  
@@ -29,7 +29,7 @@ multi-threading:
 - [x] limit max threads
 
 ## Extra Feature:
-- [ ] authentication
+- [X] authentication
 - [x] SSL
 - [X] support for all file types
 - [X] support for large files (>1GB)
