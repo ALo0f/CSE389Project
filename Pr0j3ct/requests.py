@@ -16,7 +16,6 @@ class RequestProcessor(threading.Thread):
         self.rootDirectory = rootDirectory
         self.indexFile = indexFile
         self.authHandler = authHandler
-        self.authUser = None
         self.connSocket = connSocket
         self.connSocket.settimeout(1)
         self.connSocketAddress = connSocketAddress
@@ -136,9 +135,9 @@ class RequestProcessor(threading.Thread):
                 self._sendHEADER(200, "OK", "text/html; charset=utf-8", len(data))
                 self._send(data)
             elif len(data) == 1:
-                self._send(data[0] + "/r/n")
+                self._send(data[0] + "\r\n\r\n")
             else:
-                self._send(data[0] + "/r/n")
+                self._send(data[0] + "\r\n\r\n")
                 self._send(data[1])
         #else try to recognize target file
         else:
@@ -161,7 +160,7 @@ class RequestProcessor(threading.Thread):
             # else send back requested file
             else:
                 self.authHandler.mutex.acquire()
-                authorized = self.authHandler.auth(filePath, self.authUser)
+                authorized = self.authHandler.auth(filePath, self.connSocketAddress)
                 self.authHandler.mutex.release()
                 # if not authorized
                 if not authorized:
@@ -193,9 +192,9 @@ class RequestProcessor(threading.Thread):
                                 self.logger.warn("GET {} failed to send".format(filePath))
                                 break
                 elif len(data) == 1:
-                    self._send(data[0] + "/r/n")
+                    self._send(data[0] + "\r\n\r\n")
                 else:
-                    self._send(data[0] + "/r/n")
+                    self._send(data[0] + "\r\n\r\n")
                     self._send(data[1])
 
     def _handleHEAD(self, message):
@@ -218,9 +217,9 @@ class RequestProcessor(threading.Thread):
                     data = inputFile.read()
                 self._sendHEADER(200, "OK", "text/html; charset=utf-8", len(data))
             elif len(data) == 1:
-                self._send(data[0] + "/r/n")
+                self._send(data[0] + "\r\n\r\n")
             else:
-                self._send(data[0] + "/r/n") # first is header information
+                self._send(data[0] + "\r\n\r\n") # first is header information
         else:
             # convert to relative target path
             targetInfo = "." + targetInfo
@@ -241,7 +240,7 @@ class RequestProcessor(threading.Thread):
             # else send back requested file
             else:
                 self.authHandler.mutex.acquire()
-                authorized = self.authHandler.auth(filePath, self.authUser)
+                authorized = self.authHandler.auth(filePath, self.connSocketAddress)
                 self.authHandler.mutex.release()
                 # if not authorized
                 if not authorized:
@@ -263,9 +262,9 @@ class RequestProcessor(threading.Thread):
                         # send header 
                     self._sendHEADER(200, "OK", datatype, fileSize)
                 elif len(data) == 1:
-                    self._send(data[0] + "/r/n")
+                    self._send(data[0] + "\r\n\r\n")
                 else:
-                    self._send(data[0] + "/r/n")
+                    self._send(data[0] + "\r\n\r\n")
 
     def _handlePOST(self, message):
         """
@@ -283,20 +282,24 @@ class RequestProcessor(threading.Thread):
         data = self.authHandler.handle(os.path.join(self.rootDirectory, targetInfo), targetParams)
         self.authHandler.mutex.release()
         if len(data) <= 0:
-            self.logger.warn("POST request is not handled")
-            self._handleERROR(501, "Not Implemented")
+            self.logger.warn("POST {} is not handled".format(targetInfo))
+            self._handleERROR(501, "Not Supported")
         elif len(data) == 1:
             #if is login page, do authentication as well
             if (targetInfo.lower() == "/login.html") and "username" in targetParams.keys():
                 # specific case, len(data) == 1 means login success
                 self.logger.info("login successful")
-                self.authUser = targetParams["username"]
-            self._send(data[0] + "\r\n")
+                self.authHandler.mutex.acquire()
+                self.authHandler.updateUserSession(self.connSocketAddress, targetParams["username"][0])
+                self.authHandler.mutex.release()
+            self._send(data[0] + "\r\n\r\n")
         else:
             if targetInfo.lower() == "/login.html":
                 self.logger.warn("login not successful")
-                self.authUser = None
-            self._send(data[0] + "\r\n")
+                self.authHandler.mutex.acquire()
+                self.authHandler.updateUserSession(self.connSocketAddress, None)
+                self.authHandler.mutex.release()
+            self._send(data[0] + "\r\n\r\n")
             self._send(data[1])
 
     def _handleERROR(self, errorCode, errorMessage, nobody=False):

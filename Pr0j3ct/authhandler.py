@@ -94,6 +94,8 @@ class AuthHandler:
             del rules[self.KEY_Handler][key]
         self.rules = rules
         self.logger.info("Rules initialized")
+        self.authorized_list = {}
+        self.logger.info("Authorization list initialized")
         self._save()
         
     def _save(self):
@@ -104,20 +106,24 @@ class AuthHandler:
             json.dump(self.rules, outFile, indent=4)
         self.logger.info("Rules saved")
 
-    def auth(self, path, user=None):
+    def auth(self, path, clientIP):
         """
         Authenticate path, given a user
         """
-        # if user is given and database is not empty, check exception
-        if user and self.database:
-            for item in self.rules[self.KEY_Exception]:
-                if item[self.KEY_Username] == user:
-                    # check if path is exception
-                    for filename in item[self.KEY_Files]:
-                        # user glob for path matching
-                        if os.path.normpath(path) in glob.glob(os.path.join(self.rootDirectory, filename)):
-                            return True # access is accepted
-                    break
+        # remove port information
+        clientIP = clientIP.split(":")[0]
+        if clientIP in self.authorized_list.keys():
+            user = self.authorized_list[clientIP]
+            # if user is given and database is not empty, check exception
+            if user and self.databasePath:
+                for item in self.rules[self.KEY_Exception]:
+                    if item[self.KEY_Username] == user:
+                        # check if path is exception
+                        for filename in item[self.KEY_Files]:
+                            # user glob for path matching
+                            if os.path.normpath(path) in glob.glob(os.path.join(self.rootDirectory, filename)):
+                                return True # access is accepted
+                        break
         # else check in allowed paths
         for item in self.rules[self.KEY_Allow]:
             if os.path.normpath(path) in glob.glob(os.path.join(self.rootDirectory, item)):
@@ -152,6 +158,14 @@ class AuthHandler:
                 return result
         self.logger.warn("Failed to handle {}, unknown handler".format(path))
         return []
+
+    def updateUserSession(self, clientIP, user):
+        """
+        Update authorized user session
+        """
+        # remove port information
+        clientIP = clientIP.split(":")[0]
+        self.authorized_list[clientIP] = user
 
     def shutdown(self):
         """
