@@ -8,6 +8,7 @@ import glob
 import json
 import ntpath
 import threading
+import subprocess
 
 class AuthHandler:
     def __init__(self, rootDirectory):
@@ -34,7 +35,7 @@ class AuthHandler:
         Init pre-defined rules in root directory
         """
         rules = {}
-        database = {}
+        # database = {}
         if not os.path.exists(os.path.join(self.rootDirectory, "rules.json")):
             # if not found, generate default rules
             rules = {
@@ -80,11 +81,9 @@ class AuthHandler:
         if not os.path.exists(os.path.join(self.rootDirectory, rules[self.KEY_Database])):
             self.logger.warn("Database {} not found, removed in {}".format(os.path.join(self.rootDirectory, rules[self.KEY_Database]), os.path.join(self.rootDirectory, "rules.json")))
             rules[self.KEY_Database] = ""
+            self.databasePath = None
         else:
-            with open(os.path.join(self.rootDirectory, rules[self.KEY_Database]), "r") as inFile:
-                filedata = inFile.readlines()
-                for username, password in zip(filedata[0::2], filedata[1::2]):
-                    database[username.strip()] = password.strip()
+            self.databasePath = os.path.join(self.rootDirectory, rules[self.KEY_Database])
         # remove not found handlers
         rulesHandlerToRemove = []
         for key, val in rules[self.KEY_Handler].items():
@@ -94,23 +93,16 @@ class AuthHandler:
         for key in rulesHandlerToRemove:
             del rules[self.KEY_Handler][key]
         self.rules = rules
-        self.database = database
         self.logger.info("Rules initialized")
-        self.logger.info("Database initialized")
         self._save()
         
     def _save(self):
         """
-        Save updated rules and database
+        Save updated rules
         """
         with open(os.path.join(self.rootDirectory, "rules.json"), "w") as outFile:
             json.dump(self.rules, outFile, indent=4)
-        if len(self.rules[self.KEY_Database]) > 0:
-            with open(os.path.join(self.rootDirectory, self.rules[self.KEY_Database]), "w") as outFile:
-                for key, val in self.database.items():
-                    print(key, file=outFile)
-                    print(val, file=outFile)
-        self.logger.info("Rules and Database saved")
+        self.logger.info("Rules saved")
 
     def auth(self, path, user=None):
         """
@@ -147,22 +139,18 @@ class AuthHandler:
         filename = pathTail or ntpath.basename(pathHead)
         for key, val in self.rules[self.KEY_Handler].items():
             if key == filename:
-                # TODO: run handler file to get content
-                pass
+                command = "python \"{}\" ".format(glob.glob(os.path.join(self.rootDirectory, val))[0])
+                for pKey, pVal in params.items():
+                    command += "--{} ".format(pKey)
+                    for pValItem in pVal:
+                        command += "\"{}\" ".format(pValItem)
+                proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                result = proc.communicate()[0]
+                if len(result) <= 0: return []
+                result = result.decode("utf-8").split("\r\n\r\n") # read output from handler file and convert to string
+                return result
         self.logger.warn("Failed to handle {}, unknown handler".format(path))
-
-    def verify(self, username, password):
-        """
-        Verify username and password in database
-        """
-        # return false if database is empty
-        if not self.database: return False
-        # return false if username not found
-        if not username in self.database.keys(): return False
-        # return false if password is incorrect
-        if self.database[username] != password: return False
-        # by default, return true
-        return True
+        return []
 
     def shutdown(self):
         """

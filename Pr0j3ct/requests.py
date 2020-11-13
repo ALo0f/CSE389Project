@@ -130,11 +130,16 @@ class RequestProcessor(threading.Thread):
             self.authHandler.mutex.acquire()
             data = self.authHandler.handle(os.path.join(self.rootDirectory, self.indexFile), targetParams)
             self.authHandler.mutex.release()
-            if not data:
+            if len(data) <= 0:
                 with open(os.path.join(self.rootDirectory, self.indexFile), "r") as inputFile:
                     data = inputFile.read()
-            self._sendHEADER(200, "OK", "text/html; charset=utf-8", len(data))
-            self._send(data)
+                self._sendHEADER(200, "OK", "text/html; charset=utf-8", len(data))
+                self._send(data)
+            elif len(data) == 1:
+                self._send(data[0])
+            else:
+                self._send(data[0] + "/r/n")
+                self._send(data[1])
         #else try to recognize target file
         else:
             # convert to relative target path
@@ -166,7 +171,7 @@ class RequestProcessor(threading.Thread):
                 self.authHandler.mutex.acquire()
                 data = self.authHandler.handle(filePath, targetParams)
                 self.authHandler.mutex.release()
-                if not data:
+                if len(data) <= 0:
                     # get file size in bytes
                     fileSize = os.path.getsize(filePath)
                     # get data type
@@ -187,24 +192,35 @@ class RequestProcessor(threading.Thread):
                             if not self._send(data, binary=True):
                                 self.logger.warn("GET {} failed to send".format(filePath))
                                 break
+                elif len(data) == 1:
+                    self._send(data[0])
                 else:
-                    self._sendHEADER(200, "OK", "text/html; charset=utf-8", len(data))
-                    self._send(data)
+                    self._send(data[0] + "/r/n")
+                    self._send(data[1])
 
     def _handleHEAD(self, message):
         """
         handle HEAD http request
         """
         received = message.split("\n")[0]
-        targetInfo = received.split()[1]
         #convert URL to original string
-        targetInfo = urllib.parse.unquote(targetInfo)
+        targetInfoParsed = urllib.parse.urlparse(received.split()[1])
+        targetInfo = urllib.parse.unquote(targetInfoParsed.path)
+        targetParams = urllib.parse.parse_qs(targetInfoParsed.query)
         self.logger.info("HEAD {}".format(targetInfo))
         #if requested root send back index file header
         if targetInfo == "/" :
-            with open(os.path.join(self.rootDirectory, self.indexFile), "r") as inputFile:
-                data = inputFile.read()
-            self._sendHEADER(200, "OK", "text/html; charset=utf-8", len(data))
+            self.authHandler.mutex.acquire()
+            data = self.authHandler.handle(os.path.join(self.rootDirectory, self.indexFile), targetParams)
+            self.authHandler.mutex.release()
+            if len(data) <= 0:
+                with open(os.path.join(self.rootDirectory, self.indexFile), "r") as inputFile:
+                    data = inputFile.read()
+                self._sendHEADER(200, "OK", "text/html; charset=utf-8", len(data))
+            elif len(data) == 1:
+                self._send(data[0])
+            else:
+                self._send(data[0] + "/r/n") # first is header information
         else:
             # convert to relative target path
             targetInfo = "." + targetInfo
@@ -232,16 +248,24 @@ class RequestProcessor(threading.Thread):
                     self.logger.warn("GET {} not authorized".format(filePath))
                     self._handleERROR(403, "Permission Denied", nobody=True)
                     return
-                # get file size in bytes
-                fileSize = os.path.getsize(filePath)
-                # get data type
-                datatype, _ = mimetypes.guess_type(filePath)
-                if not datatype:
-                    # if not able to guess, set to "application/octet-stream" (default binary file type)
-                    self.logger.warn("HEAD {} unknown mime type, set to application/octet-stream".format(filePath))
-                    datatype = "application/octet-stream"
-                    # send header 
-                self._sendHEADER(200, "OK", datatype, fileSize)
+                self.authHandler.mutex.acquire()
+                data = self.authHandler.handle(filePath, targetParams)
+                self.authHandler.mutex.release()
+                if len(data) <= 0:
+                    # get file size in bytes
+                    fileSize = os.path.getsize(filePath)
+                    # get data type
+                    datatype, _ = mimetypes.guess_type(filePath)
+                    if not datatype:
+                        # if not able to guess, set to "application/octet-stream" (default binary file type)
+                        self.logger.warn("HEAD {} unknown mime type, set to application/octet-stream".format(filePath))
+                        datatype = "application/octet-stream"
+                        # send header 
+                    self._sendHEADER(200, "OK", datatype, fileSize)
+                elif len(data) == 1:
+                    self._send(data[0])
+                else:
+                    self._send(data[0] + "/r/n")
 
     def _handlePOST(self, message):
         """
