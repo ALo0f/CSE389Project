@@ -13,7 +13,8 @@
         {
             "Username": "admin",
             "Files": [
-                "presentation.html"
+                "presentation.html",
+                "CSE389.pptx"
             ]
         }
     ],
