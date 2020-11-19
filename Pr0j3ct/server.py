@@ -42,7 +42,7 @@ class Server:
             self.SSL_context = None
             self.SSL_cert_file = ""
             self.SSL_key_file = ""
-            self. SSL_enabled = False
+            self.SSL_enabled = False
 
     def start(self):
         # create server socket
