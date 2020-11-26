@@ -10,6 +10,9 @@ import ntpath
 import threading
 import subprocess
 
+"""
+This class load local rules defines in the website's root directory and provide functions to authenticate user login.
+"""
 class AuthHandler:
     def __init__(self, rootDirectory):
         self._init_keys()

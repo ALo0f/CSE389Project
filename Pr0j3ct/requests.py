@@ -10,6 +10,10 @@ import mimetypes
 import urllib.parse
 from email.utils import formatdate
 
+"""
+This class receives http requests from client , processes the request and send back any response.
+"""
+
 class RequestProcessor(threading.Thread):
     def __init__(self, rootDirectory, indexFile, connSocket, connSocketAddress, authHandler):
         threading.Thread.__init__(self)

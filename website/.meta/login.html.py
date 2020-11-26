@@ -20,6 +20,8 @@ HEADER_Rejected = [
     "Content-Type: text/html; charset=utf-8\r\n"
 ]
 
+
+
 def verify(rootDirectory, username, password):
     """
     Load local database and verify username and password
@@ -33,10 +35,16 @@ def verify(rootDirectory, username, password):
     return False
 
 def accept():
+    """
+    print header_accpeted
+    """
     print("".join(HEADER_Accepted), end="")
     print()
 
 def reject(rootDirectory):
+    """
+    print head rejected and print html content
+    """
     with open(os.path.join(rootDirectory, "login.html.rejected.html"), "r") as inFile:
         data = inFile.read()
     print("".join(HEADER_Rejected).format(len(data)), end="")

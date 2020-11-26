@@ -3,6 +3,10 @@
 
 from Pr0j3ct.logging import Logger
 
+"""
+This class manages multiple threads for the server.
+"""
+
 class Scheduler:
     def __init__(self, max_threads=50):
         self.max_threads = max_threads

@@ -3,6 +3,10 @@
 import os
 from datetime import datetime
 
+
+"""
+This class provide functions to print logging information in terminal and save messages in local log files.
+"""
 class Logger:
     def __init__(self, caller):
         self.caller = caller.replace(".", "_").replace(":", "__")

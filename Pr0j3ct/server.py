@@ -10,6 +10,10 @@ import os
 import ssl
 import socket
 
+
+"""
+This class starts a server socket and listen for any connections and start threads for these connections.
+"""
 class Server:
     def __init__(self, rootDirectory, port, indexFile="index.html", enableSSL=False):
         # check arguments
