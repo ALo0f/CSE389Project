@@ -47,6 +47,12 @@ class Server:
             self.SSL_cert_file = ""
             self.SSL_key_file = ""
             self.SSL_enabled = False
+        
+        if self.SSL_enabled:
+            self.logger.info("Website address is: https://{}:{}".format("localhost", self.port))
+        else:
+            self.logger.info("Website address is: http://{}:{}".format("localhost", self.port))
+
 
     def start(self):
         # create server socket
